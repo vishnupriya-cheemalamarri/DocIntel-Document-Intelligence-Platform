@@ -1,9 +1,8 @@
 # backend/trust.py
-from sentence_transformers import SentenceTransformer
+from embedder import get_model
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def compute_trust_score(answer: str, chunks: list) -> dict:
     if not chunks or answer == "INSUFFICIENT CONTEXT":
@@ -22,8 +21,8 @@ def compute_trust_score(answer: str, chunks: list) -> dict:
                 "total_sentences": 0, "label": "No match", "color": "#E24B4A"}
 
     # Step 2 — embed sentences and chunks
-    sentence_embeddings = model.encode(sentences)
-    chunk_embeddings = model.encode(chunks)
+    sentence_embeddings = get_model().encode(sentences)
+    chunk_embeddings = get_model().encode(chunks)
 
     # Step 3 — for each sentence find max similarity to any chunk
     grounded = 0

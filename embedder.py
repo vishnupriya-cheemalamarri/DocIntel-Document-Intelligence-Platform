@@ -10,7 +10,14 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 300
 COLLECTION_NAME = "documents"
 
-model = SentenceTransformer(EMBEDDING_MODEL)
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer(EMBEDDING_MODEL)
+    return _model
+
 client = chromadb.PersistentClient(path="./chroma_db")
 
 def chunk_text(text: str) -> List[str]:
@@ -28,7 +35,7 @@ def chunk_text(text: str) -> List[str]:
     return chunks
 
 def embed_chunks(chunks: List[str], collection_name: str = COLLECTION_NAME):
-    embeddings = model.encode(chunks).tolist()
+    embeddings = get_model().encode(chunks).tolist()
     # Delete and recreate collection to clear old data
     try:
         client.delete_collection(collection_name)
@@ -43,7 +50,7 @@ def embed_chunks(chunks: List[str], collection_name: str = COLLECTION_NAME):
     )
 
 def search(query: str, collection_name: str = COLLECTION_NAME, top_k: int = 5) -> List[str]:
-    q_embed = model.encode([query]).tolist()
+    q_embed = get_model().encode([query]).tolist()
     col = client.get_collection(collection_name)
     results = col.query(query_embeddings=q_embed, n_results=top_k)
     return results["documents"][0]
