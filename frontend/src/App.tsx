@@ -3,14 +3,49 @@ import axios from "axios";
 
 const API = "http://localhost:8000/api/v1/query";
 
-type Result = { answer: string; chunks_used: string[] };
-
-const trust = (answer: string, chunks: string[]) => {
-  if (answer === "INSUFFICIENT CONTEXT") return { pct: 10, label: "No match", color: "#E24B4A" };
-  if (chunks.length >= 3) return { pct: 85, label: "High confidence", color: "#1D9E75" };
-  if (chunks.length === 2) return { pct: 60, label: "Medium confidence", color: "#EF9F27" };
-  return { pct: 35, label: "Low confidence", color: "#E24B4A" };
+type TrustData = {
+  score: number;
+  label: string;
+  color: string;
+  grounded_sentences: number;
+  total_sentences: number;
 };
+
+type Result = {
+  answer: string;
+  chunks_used: string[];
+  trust: TrustData;
+};
+
+const TrustBadge = ({ trust }: { trust: TrustData }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{
+      width: 120, height: 4,
+      background: "rgba(255,255,255,0.08)",
+      borderRadius: 2, overflow: "hidden",
+    }}>
+      <div style={{
+        height: "100%",
+        width: `${Math.round(trust.score * 100)}%`,
+        background: trust.color,
+        borderRadius: 2,
+        transition: "width 1s ease",
+      }} />
+    </div>
+    <span style={{
+      fontSize: 12, fontWeight: 600,
+      color: trust.color,
+      border: `1px solid ${trust.color}33`,
+      borderRadius: 20, padding: "3px 12px",
+      background: `${trust.color}15`,
+    }}>
+      {trust.label} · {Math.round(trust.score * 100)}%
+    </span>
+    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+      {trust.grounded_sentences}/{trust.total_sentences} sentences grounded
+    </span>
+  </div>
+);
 
 // Animated floating orbs background
 const Orbs = () => (
@@ -116,8 +151,6 @@ export default function App() {
       setLoading(false);
     }
   };
-
-  const t = result ? trust(result.answer, result.chunks_used) : null;
 
   return (
     <>
@@ -360,34 +393,7 @@ export default function App() {
           {result && (
             <div ref={resultRef} className="card fade-up" style={{ padding: 28 }}>
               {/* Trust score */}
-              {t && (
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  marginBottom: 20,
-                }}>
-                  <span className="label-text" style={{ margin: 0 }}>✦ Answer</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 120, height: 4, background: "rgba(255,255,255,0.08)",
-                      borderRadius: 2, overflow: "hidden",
-                    }}>
-                      <div style={{
-                        height: "100%", width: `${t.pct}%`,
-                        background: t.color, borderRadius: 2,
-                        transition: "width 1s ease",
-                      }} />
-                    </div>
-                    <span style={{
-                      fontSize: 12, fontWeight: 600,
-                      color: t.color, border: `1px solid ${t.color}33`,
-                      borderRadius: 20, padding: "3px 12px",
-                      background: `${t.color}15`,
-                    }}>
-                      {t.label} · {t.pct}%
-                    </span>
-                  </div>
-                </div>
-              )}
+              <TrustBadge trust={result.trust} />
 
               <p style={{
                 fontSize: 15, lineHeight: 1.8,

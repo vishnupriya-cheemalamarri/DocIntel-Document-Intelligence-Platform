@@ -8,6 +8,7 @@ from parser import parse_document
 from embedder import chunk_text, embed_chunks
 from retriever import retrieve_single
 from llm import generate_answer
+from trust import compute_trust_score
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     chunks_used: List[str]
+    trust: dict
 
 @router.post("/query", response_model=QueryResponse)
 async def query_document(payload: QueryRequest):
@@ -37,9 +39,13 @@ async def query_document(payload: QueryRequest):
         # Step 4 - generate answer
         answer = generate_answer(payload.question, relevant_chunks)
 
+        # Real trust score
+        trust = compute_trust_score(answer, relevant_chunks)
+
         return {
             "answer": answer,
-            "chunks_used": relevant_chunks
+            "chunks_used": relevant_chunks,
+            "trust": trust
         }
 
     except Exception as e:
